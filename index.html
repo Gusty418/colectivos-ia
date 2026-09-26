@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>🚌 Registro de Colectivos</title>
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #eef2f7;
+    color: #17202a;
+}
+
+.contenedor {
+    max-width: 500px;
+    margin: auto;
+    padding: 15px;
+}
+
+.tarjeta {
+    background: white;
+    padding: 20px;
+    margin-bottom: 15px;
+    border-radius: 18px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+
+h1 {
+    text-align: center;
+    margin-top: 5px;
+}
+
+.subtitulo {
+    text-align: center;
+    color: #667;
+    margin-bottom: 20px;
+}
+
+label {
+    display: block;
+    font-weight: bold;
+    margin-top: 15px;
+    margin-bottom: 6px;
+}
+
+input,
+select,
+button {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 16px;
+}
+
+input,
+select {
+    border: 1px solid #ccd3dc;
+    background: white;
+}
+
+button {
+    border: none;
+    margin-top: 15px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.guardar {
+    background: #1769ff;
+    color: white;
+}
+
+.gps {
+    background: #e8f0ff;
+    color: #174ea6;
+}
+
+.exportar {
+    background: #e7f6ec;
+    color: #176b36;
+}
+
+.borrar {
+    background: #ffe8e8;
+    color: #b00020;
+}
+
+.estado {
+    padding: 12px;
+    background: #eef5ff;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    text-align: center;
+    font-size: 14px;
+}
+
+.contador {
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.observacion {
+    border-top: 1px solid #ddd;
+    padding: 12px 0;
+    font-size: 14px;
+}
+
+.pequeno {
+    color: #667;
+    font-size: 12px;
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="contenedor">
+
+
+<div class="tarjeta">
+
+<h1>🚌 Registro de Colectivos</h1>
+
+<div class="subtitulo">
+Funciona sin internet
+</div>
+
+
+<div id="estado" class="estado">
+📴 Los datos se guardan en este teléfono
+</div>
+
+
+<form id="formulario">
+
+
+<label>
+📅 Fecha
+</label>
+
+<input
+type="date"
+id="fecha"
+required
+>
+
+
+<label>
+🕐 Hora en que viste el colectivo
+</label>
+
+<input
+type="time"
+id="hora"
+required
+>
+
+
+<label>
+🚌 Línea
+</label>
+
+<input
+type="text"
+id="linea"
+placeholder="Ej: 108A"
+required
+>
+
+
+<label>
+📍 Parada
+</label>
+
+<input
+type="text"
+id="parada"
+placeholder="Ej: 15"
+required
+>
+
+
+<label>
+➡️ Sentido
+</label>
+
+<select id="sentido">
+
+<option>
+Hospital Vidal
+</option>
+
+<option>
+Otro destino
+</option>
+
+<option>
+Otro
+</option>
+
+</select>
+
+
+<label>
+🚗 Tráfico (1-5)
+</label>
+
+<input
+type="number"
+id="trafico"
+min="1"
+max="5"
+value="3"
+required
+>
+
+
+<label>
+⏱️ Tiempo de llegada (minutos)
+</label>
+
+<input
+type="number"
+id="tiempo"
+min="0"
+step="0.1"
+placeholder="Ej: 7"
+required
+>
+
+
+<button
+type="submit"
+class="guardar"
+>
+💾 GUARDAR OBSERVACIÓN
+</button>
+
+
+</form>
+
+</div>
+
+
+<div class="tarjeta">
+
+
+<div class="contador">
+
+📊 Observaciones guardadas:
+<span id="cantidad">
+0
+</span>
+
+</div>
+
+
+<button
+class="gps"
+id="botonGPS"
+>
+📍 Guardar ubicación GPS
+</button>
+
+
+<button
+class="exportar"
+id="botonExportar"
+>
+📤 Exportar datos CSV
+</button>
+
+
+<button
+class="borrar"
+id="botonBorrar"
+>
+🗑️ Borrar todos los datos
+</button>
+
+
+</div>
+
+
+<div class="tarjeta">
+
+<h2>
+📋 Últimas observaciones
+</h2>
+
+<div id="lista">
+No hay observaciones todavía.
+</div>
+
+</div>
+
+
+</div>
+
+
+<script>
+
+
+// ==========================================
+// CONFIGURACIÓN
+// ==========================================
+
+const CLAVE = "observaciones_colectivos";
+
+
+// ==========================================
+// CARGAR DATOS
+// ==========================================
+
+let observaciones =
+JSON.parse(
+localStorage.getItem(CLAVE) || "[]"
+);
+
+
+// ==========================================
+// ELEMENTOS
+// ==========================================
+
+const formulario =
+document.getElementById("formulario");
+
+const fecha =
+document.getElementById("fecha");
+
+const hora =
+document.getElementById("hora");
+
+const linea =
+document.getElementById("linea");
+
+const parada =
+document.getElementById("parada");
+
+const sentido =
+document.getElementById("sentido");
+
+const trafico =
+document.getElementById("trafico");
+
+const tiempo =
+document.getElementById("tiempo");
+
+const cantidad =
+document.getElementById("cantidad");
+
+const lista =
+document.getElementById("lista");
+
+
+// ==========================================
+// FECHA Y HORA ACTUALES
+// ==========================================
+
+function colocarFechaHora() {
+
+    const ahora = new Date();
+
+    const anio =
+    ahora.getFullYear();
+
+    const mes =
+    String(
+        ahora.getMonth() + 1
+    ).padStart(2, "0");
+
+    const dia =
+    String(
+        ahora.getDate()
+    ).padStart(2, "0");
+
+    const horas =
+    String(
+        ahora.getHours()
+    ).padStart(2, "0");
+
+    const minutos =
+    String(
+        ahora.getMinutes()
+    ).padStart(2, "0");
+
+
+    fecha.value =
+    `${anio}-${mes}-${dia}`;
+
+    hora.value =
+    `${horas}:${minutos}`;
+}
+
+
+colocarFechaHora();
+
+
+// ==========================================
+// GUARDAR DATOS
+// ==========================================
+
+function guardarDatos() {
+
+    localStorage.setItem(
+        CLAVE,
+        JSON.stringify(observaciones)
+    );
+
+    actualizarPantalla();
+}
+
+
+// ==========================================
+// ACTUALIZAR PANTALLA
+// ==========================================
+
+function actualizarPantalla() {
+
+    cantidad.textContent =
+    observaciones.length;
+
+
+    if (observaciones.length === 0) {
+
+        lista.innerHTML =
+        "No hay observaciones todavía.";
+
+        return;
+    }
+
+
+    const ultimas =
+    observaciones
+    .slice()
+    .reverse()
+    .slice(0, 10);
+
+
+    lista.innerHTML = "";
+
+
+    ultimas.forEach(
+        function(obs) {
+
+            const elemento =
+            document.createElement("div");
+
+            elemento.className =
+            "observacion";
+
+
+            let gpsTexto = "";
+
+
+            if (
+                obs.latitud !== null &&
+                obs.longitud !== null
+            ) {
+
+                gpsTexto =
+                `<br>📍 GPS:
+                ${obs.latitud.toFixed(6)},
+                ${obs.longitud.toFixed(6)}`;
+
+            }
+
+
+            elemento.innerHTML = `
+
+                <b>
+                🚌 ${obs.linea}
+                </b>
+
+                <br>
+
+                📅 ${obs.fecha}
+
+                🕐 ${obs.hora}
+
+                <br>
+
+                📍 Parada:
+                ${obs.parada}
+
+                <br>
+
+                ➡️ ${obs.sentido}
+
+                <br>
+
+                🚗 Tráfico:
+                ${obs.trafico}/5
+
+                <br>
+
+                ⏱️ Tiempo:
+                ${obs.tiempo} minutos
+
+                ${gpsTexto}
+
+            `;
+
+
+            lista.appendChild(
+                elemento
+            );
+
+        }
+    );
+}
+
+
+// ==========================================
+// REGISTRAR OBSERVACIÓN
+// ==========================================
+
+formulario.addEventListener(
+    "submit",
+    function(event) {
+
+        event.preventDefault();
+
+
+        const nuevaObservacion = {
+
+            fecha:
+            fecha.value,
+
+            hora:
+            hora.value,
+
+            linea:
+            linea.value.trim(),
+
+            parada:
+            parada.value.trim(),
+
+            sentido:
+            sentido.value,
+
+            trafico:
+            Number(
+                trafico.value
+            ),
+
+            tiempo:
+            Number(
+                tiempo.value
+            ),
+
+            latitud:
+            null,
+
+            longitud:
+            null
+
+        };
+
+
+        observaciones.push(
+            nuevaObservacion
+        );
+
+
+        guardarDatos();
+
+
+        alert(
+            "✅ Observación guardada en el teléfono."
+        );
+
+
+        linea.value = "";
+
+        parada.value = "";
+
+        tiempo.value = "";
+
+
+        colocarFechaHora();
+
+    }
+);
+
+
+// ==========================================
+// GPS
+// ==========================================
+
+document
+.getElementById("botonGPS")
+.addEventListener(
+    "click",
+    function() {
+
+
+        if (
+            observaciones.length === 0
+        ) {
+
+            alert(
+                "Primero guardá una observación."
+            );
+
+            return;
+        }
+
+
+        if (
+            !navigator.geolocation
+        ) {
+
+            alert(
+                "❌ Este dispositivo no permite GPS."
+            );
+
+            return;
+        }
+
+
+        navigator
+        .geolocation
+        .getCurrentPosition(
+
+            function(posicion) {
+
+                const ultima =
+                observaciones[
+                    observaciones.length - 1
+                ];
+
+
+                ultima.latitud =
+                posicion.coords.latitude;
+
+
+                ultima.longitud =
+                posicion.coords.longitude;
+
+
+                guardarDatos();
+
+
+                alert(
+                    "📍 Ubicación GPS guardada."
+                );
+
+            },
+
+            function() {
+
+                alert(
+                    "❌ No se pudo obtener el GPS."
+                );
+
+            },
+
+            {
+                enableHighAccuracy: true,
+                timeout: 10000
+            }
+
+        );
+
+    }
+);
+
+
+// ==========================================
+// EXPORTAR CSV
+// ==========================================
+
+document
+.getElementById("botonExportar")
+.addEventListener(
+    "click",
+    function() {
+
+
+        if (
+            observaciones.length === 0
+        ) {
+
+            alert(
+                "No hay datos para exportar."
+            );
+
+            return;
+        }
+
+
+        const encabezados = [
+
+            "fecha",
+            "hora",
+            "linea",
+            "parada",
+            "sentido",
+            "trafico",
+            "tiempo_llegada",
+            "latitud",
+            "longitud"
+
+        ];
+
+
+        let csv =
+        encabezados.join(",") +
+        "\n";
+
+
+        observaciones.forEach(
+            function(obs) {
+
+                csv += [
+
+                    obs.fecha,
+                    obs.hora,
+                    obs.linea,
+                    obs.parada,
+                    obs.sentido,
+                    obs.trafico,
+                    obs.tiempo,
+                    obs.latitud ?? "",
+                    obs.longitud ?? ""
+
+                ].join(",") + "\n";
+
+            }
+        );
+
+
+        const archivo =
+        new Blob(
+            [csv],
+            {
+                type:
+                "text/csv;charset=utf-8;"
+            }
+        );
+
+
+        const url =
+        URL.createObjectURL(
+            archivo
+        );
+
+
+        const enlace =
+        document.createElement("a");
+
+
+        enlace.href = url;
+
+
+        enlace.download =
+        "observaciones_colectivos.csv";
+
+
+        enlace.click();
+
+
+        URL.revokeObjectURL(
+            url
+        );
+
+    }
+);
+
+
+// ==========================================
+// BORRAR DATOS
+// ==========================================
+
+document
+.getElementById("botonBorrar")
+.addEventListener(
+    "click",
+    function() {
+
+
+        const confirmar =
+        confirm(
+            "¿Seguro que querés borrar TODAS las observaciones?"
+        );
+
+
+        if (!confirmar) {
+            return;
+        }
+
+
+        observaciones = [];
+
+
+        guardarDatos();
+
+
+        alert(
+            "🗑️ Datos eliminados."
+        );
+
+    }
+);
+
+
+// ==========================================
+// INICIAR
+// ==========================================
+
+actualizarPantalla();
+
+
+</script>
+
+
+</body>
+
+</html>

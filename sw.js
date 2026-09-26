@@ -1,100 +1,933 @@
-const CACHE_NAME = "colectivos-v2";
+<!DOCTYPE html>
+<html lang="es">
 
-const ARCHIVOS = [
-    "./",
-    "./index.html",
-    "./manifest.json"
-];
+<head>
 
-self.addEventListener("install", function(event) {
+    <meta charset="UTF-8">
 
-    self.skipWaiting();
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
 
-    event.waitUntil(
-        caches.open(CACHE_NAME)
-        .then(function(cache) {
-            return cache.addAll(ARCHIVOS);
-        })
+    <title>Colectivos IA - Corrientes</title>
+
+    <link rel="manifest" href="./manifest.json">
+
+    <link rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #eef2f7;
+            color: #222;
+        }
+
+        header {
+            background: #1769ff;
+            color: white;
+            padding: 18px;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        header p {
+            margin: 6px 0 0;
+            opacity: 0.9;
+        }
+
+        main {
+            max-width: 1000px;
+            margin: auto;
+            padding: 15px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 14px;
+            padding: 18px;
+            margin-bottom: 18px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+        }
+
+        h2 {
+            margin-top: 0;
+            font-size: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-top: 12px;
+            margin-bottom: 5px;
+        }
+
+        input,
+        select,
+        button {
+            width: 100%;
+            padding: 11px;
+            border-radius: 8px;
+            border: 1px solid #bbb;
+            font-size: 15px;
+        }
+
+        button {
+            background: #1769ff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 12px;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .danger {
+            background: #dc3545;
+        }
+
+        .secondary {
+            background: #555;
+        }
+
+        .success {
+            background: #198754;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        #map {
+            height: 450px;
+            border-radius: 12px;
+            margin-top: 15px;
+        }
+
+        .estado {
+            background: #fff3cd;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 12px;
+            font-weight: bold;
+        }
+
+        .parada {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 8px;
+            background: #fafafa;
+        }
+
+        .parada strong {
+            font-size: 16px;
+        }
+
+        .parada button {
+            margin-top: 8px;
+        }
+
+        .info {
+            background: #e7f1ff;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .contador {
+            font-size: 14px;
+            color: #555;
+            margin-top: 8px;
+            font-weight: bold;
+        }
+
+        .linea-108 {
+            color: #c62828;
+        }
+
+        .linea-110 {
+            color: #d89b00;
+        }
+
+        @media (max-width: 600px) {
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            #map {
+                height: 380px;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<header>
+
+    <h1>🚌 Colectivos IA</h1>
+
+    <p>Registro de recorridos y observaciones</p>
+
+</header>
+
+
+<main>
+
+
+    <!-- ================================================= -->
+    <!-- ADMINISTRAR RECORRIDOS -->
+    <!-- ================================================= -->
+
+    <section class="card">
+
+        <h2>⚙️ Administrar recorridos</h2>
+
+        <div class="info">
+
+            Acá cargás las paradas permanentes de cada recorrido.
+
+            <br><br>
+
+            Una vez cargadas, no necesitás volver a crearlas
+            para registrar observaciones.
+
+        </div>
+
+
+        <div class="grid">
+
+            <div>
+
+                <label>Línea</label>
+
+                <select id="lineaAdmin">
+
+                    <option value="108A">108A - 🔴 ERSA</option>
+
+                    <option value="110A">110A - 🟡 Miramar</option>
+
+                </select>
+
+            </div>
+
+
+            <div>
+
+                <label>Sentido</label>
+
+                <select id="sentidoAdmin">
+
+                    <option value="Ida">Ida</option>
+
+                    <option value="Vuelta">Vuelta</option>
+
+                </select>
+
+            </div>
+
+        </div>
+
+
+        <label>Nombre de la parada</label>
+
+        <input
+            type="text"
+            id="nombreParada"
+            placeholder="Ej: Parada Chacabuco"
+        >
+
+
+        <label>Orden de la parada</label>
+
+        <input
+            type="number"
+            id="ordenParada"
+            min="1"
+            placeholder="Ej: 1"
+        >
+
+
+        <button
+            id="btnSeleccionarMapa"
+            class="success"
+        >
+            📍 Seleccionar ubicación en el mapa
+        </button>
+
+
+        <div
+            id="estadoMapa"
+            class="estado"
+            style="display:none;"
+        ></div>
+
+
+        <div id="listaParadas"></div>
+
+
+        <div class="contador" id="contadorParadas"></div>
+
+
+        <button
+            id="btnExportarRecorridos"
+            class="secondary"
+        >
+            📤 Exportar recorridos CSV
+        </button>
+
+
+    </section>
+
+
+
+    <!-- ================================================= -->
+    <!-- MAPA -->
+    <!-- ================================================= -->
+
+    <section class="card">
+
+        <h2>🗺️ Mapa del recorrido</h2>
+
+        <div class="grid">
+
+            <div>
+
+                <label>Mostrar línea</label>
+
+                <select id="lineaMapa">
+
+                    <option value="108A">108A - 🔴 ERSA</option>
+
+                    <option value="110A">110A - 🟡 Miramar</option>
+
+                </select>
+
+            </div>
+
+
+            <div>
+
+                <label>Mostrar sentido</label>
+
+                <select id="sentidoMapa">
+
+                    <option value="Ida">Ida</option>
+
+                    <option value="Vuelta">Vuelta</option>
+
+                </select>
+
+            </div>
+
+        </div>
+
+
+        <div id="map"></div>
+
+    </section>
+
+
+
+    <!-- ================================================= -->
+    <!-- REGISTRAR OBSERVACIÓN -->
+    <!-- ================================================= -->
+
+    <section class="card">
+
+        <h2>🚌 Registrar observación</h2>
+
+        <div class="info">
+
+            Acá solamente registrás lo que observaste.
+            Las paradas ya están cargadas en el recorrido.
+
+        </div>
+
+
+        <div class="grid">
+
+            <div>
+
+                <label>Línea</label>
+
+                <select id="lineaObservacion">
+
+                    <option value="108A">108A - 🔴 ERSA</option>
+
+                    <option value="110A">110A - 🟡 Miramar</option>
+
+                </select>
+
+            </div>
+
+
+            <div>
+
+                <label>Sentido</label>
+
+                <select id="sentidoObservacion">
+
+                    <option value="Ida">Ida</option>
+
+                    <option value="Vuelta">Vuelta</option>
+
+                </select>
+
+            </div>
+
+        </div>
+
+
+        <label>Parada</label>
+
+        <select id="paradaObservacion">
+
+            <option value="">
+                Seleccioná una parada
+            </option>
+
+        </select>
+
+
+        <div class="grid">
+
+            <div>
+
+                <label>Fecha</label>
+
+                <input
+                    type="date"
+                    id="fechaObservacion"
+                >
+
+            </div>
+
+
+            <div>
+
+                <label>Hora</label>
+
+                <input
+                    type="time"
+                    id="horaObservacion"
+                >
+
+            </div>
+
+        </div>
+
+
+        <label>Tráfico</label>
+
+        <select id="trafico">
+
+            <option value="1">1 - Muy bajo</option>
+
+            <option value="2">2 - Bajo</option>
+
+            <option value="3" selected>3 - Normal</option>
+
+            <option value="4">4 - Alto</option>
+
+            <option value="5">5 - Muy alto</option>
+
+        </select>
+
+
+        <label>
+            ⏱️ Tiempo de llegada observado (minutos)
+        </label>
+
+        <input
+            type="number"
+            id="tiempoLlegada"
+            min="0"
+            step="0.1"
+            placeholder="Ej: 7.5"
+        >
+
+
+        <button
+            id="btnGuardarObservacion"
+            class="success"
+        >
+            💾 Guardar observación
+        </button>
+
+
+        <button
+            id="btnExportarObservaciones"
+            class="secondary"
+        >
+            📤 Exportar observaciones CSV
+        </button>
+
+
+        <button
+            id="btnBorrarObservaciones"
+            class="danger"
+        >
+            🗑️ Borrar todas las observaciones
+        </button>
+
+    </section>
+
+
+
+    <!-- ================================================= -->
+    <!-- DATOS GUARDADOS -->
+    <!-- ================================================= -->
+
+    <section class="card">
+
+        <h2>📊 Observaciones guardadas</h2>
+
+        <div id="cantidadObservaciones">
+            0 observaciones
+        </div>
+
+        <div id="listaObservaciones"></div>
+
+    </section>
+
+
+</main>
+
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+
+<script>
+
+
+/* =====================================================
+   CONFIGURACIÓN
+===================================================== */
+
+const CLAVE_RECORRIDOS = "recorridos_colectivos";
+
+const CLAVE_OBSERVACIONES = "observaciones_colectivos";
+
+
+/* =====================================================
+   RECORRIDOS
+===================================================== */
+
+let recorridos = JSON.parse(
+    localStorage.getItem(CLAVE_RECORRIDOS)
+) || {};
+
+
+/*
+   Nos aseguramos de que existan
+   las 4 combinaciones.
+*/
+
+if (!recorridos["108A"]) {
+    recorridos["108A"] = {};
+}
+
+if (!recorridos["110A"]) {
+    recorridos["110A"] = {};
+}
+
+if (!recorridos["108A"]["Ida"]) {
+    recorridos["108A"]["Ida"] = [];
+}
+
+if (!recorridos["108A"]["Vuelta"]) {
+    recorridos["108A"]["Vuelta"] = [];
+}
+
+if (!recorridos["110A"]["Ida"]) {
+    recorridos["110A"]["Ida"] = [];
+}
+
+if (!recorridos["110A"]["Vuelta"]) {
+    recorridos["110A"]["Vuelta"] = [];
+}
+
+
+let observaciones = JSON.parse(
+    localStorage.getItem(CLAVE_OBSERVACIONES)
+) || [];
+
+
+/* =====================================================
+   MAPA
+===================================================== */
+
+const mapa = L.map("map").setView(
+    [-27.4692, -58.8306],
+    13
+);
+
+
+L.tileLayer(
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {
+        attribution:
+            '&copy; OpenStreetMap contributors'
+    }
+).addTo(mapa);
+
+
+let marcadores = [];
+
+let lineaRecorrido = null;
+
+
+/* =====================================================
+   VARIABLES PARA AGREGAR PARADA
+===================================================== */
+
+let esperandoUbicacion = false;
+
+let latitudSeleccionada = null;
+
+let longitudSeleccionada = null;
+
+
+/* =====================================================
+   GUARDAR RECORRIDOS
+===================================================== */
+
+function guardarRecorridos() {
+
+    localStorage.setItem(
+        CLAVE_RECORRIDOS,
+        JSON.stringify(recorridos)
     );
 
-});
+}
 
 
-self.addEventListener("activate", function(event) {
+/* =====================================================
+   GUARDAR OBSERVACIONES
+===================================================== */
 
-    event.waitUntil(
+function guardarObservaciones() {
 
-        caches.keys().then(function(keys) {
-
-            return Promise.all(
-
-                keys.map(function(key) {
-
-                    if (key !== CACHE_NAME) {
-                        return caches.delete(key);
-                    }
-
-                })
-
-            );
-
-        })
-
+    localStorage.setItem(
+        CLAVE_OBSERVACIONES,
+        JSON.stringify(observaciones)
     );
 
-    self.clients.claim();
-
-});
+}
 
 
-self.addEventListener("fetch", function(event) {
+/* =====================================================
+   OBTENER PRÓXIMO ORDEN
+===================================================== */
+
+function obtenerProximoOrden() {
+
+    const linea =
+        document.getElementById(
+            "lineaAdmin"
+        ).value;
+
+
+    const sentido =
+        document.getElementById(
+            "sentidoAdmin"
+        ).value;
+
+
+    const paradas =
+        recorridos[linea][sentido];
+
+
+    if (!paradas || paradas.length === 0) {
+
+        return 1;
+
+    }
+
+
+    const mayorOrden =
+        Math.max(
+            ...paradas.map(
+                p => Number(p.orden) || 0
+            )
+        );
+
+
+    return mayorOrden + 1;
+
+}
+
+
+/* =====================================================
+   ACTUALIZAR ORDEN AUTOMÁTICO
+===================================================== */
+
+function actualizarOrdenAutomatico() {
+
+    const input =
+        document.getElementById(
+            "ordenParada"
+        );
+
+
+    input.value =
+        obtenerProximoOrden();
+
+}
+
+
+/* =====================================================
+   CAMBIO DE LÍNEA / SENTIDO
+===================================================== */
+
+function cambioRecorridoAdmin() {
 
     /*
-       Para index.html y archivos principales:
-       primero intenta obtener la versión nueva
-       desde Internet.
-
-       Si no hay Internet, usa la versión guardada.
+       Cancelamos cualquier selección
+       de ubicación pendiente.
     */
 
+    esperandoUbicacion = false;
+
+    latitudSeleccionada = null;
+
+    longitudSeleccionada = null;
+
+
+    const estado =
+        document.getElementById(
+            "estadoMapa"
+        );
+
+
+    estado.style.display = "none";
+
+
+    /*
+       Limpiamos nombre.
+    */
+
+    document.getElementById(
+        "nombreParada"
+    ).value = "";
+
+
+    /*
+       El orden comienza automáticamente
+       desde 1 para Vuelta si está vacía.
+    */
+
+    actualizarOrdenAutomatico();
+
+
+    /*
+       Actualizamos solamente el
+       recorrido seleccionado.
+    */
+
+    actualizarListaParadas();
+
+    actualizarMapa();
+
+    actualizarSelectParadas();
+
+}
+
+
+/* =====================================================
+   CLICK EN MAPA
+===================================================== */
+
+mapa.on(
+    "click",
+    function(e) {
+
+        if (!esperandoUbicacion) {
+            return;
+        }
+
+
+        latitudSeleccionada =
+            e.latlng.lat;
+
+        longitudSeleccionada =
+            e.latlng.lng;
+
+
+        esperandoUbicacion = false;
+
+
+        const estado =
+            document.getElementById(
+                "estadoMapa"
+            );
+
+
+        estado.style.display = "block";
+
+
+        estado.innerHTML =
+            "📍 Ubicación seleccionada: " +
+            latitudSeleccionada.toFixed(6) +
+            ", " +
+            longitudSeleccionada.toFixed(6);
+
+
+        agregarParada();
+
+
+    }
+);
+
+
+/* =====================================================
+   BOTÓN SELECCIONAR UBICACIÓN
+===================================================== */
+
+document
+.getElementById("btnSeleccionarMapa")
+.addEventListener(
+    "click",
+    function() {
+
+        const nombre =
+            document.getElementById(
+                "nombreParada"
+            ).value.trim();
+
+
+        let orden =
+            parseInt(
+                document.getElementById(
+                    "ordenParada"
+                ).value
+            );
+
+
+        if (!nombre) {
+
+            alert(
+                "Primero ingresá el nombre de la parada."
+            );
+
+            return;
+        }
+
+
+        /*
+           Si el orden está vacío,
+           usamos automáticamente el siguiente.
+        */
+
+        if (!orden || orden < 1) {
+
+            orden =
+                obtenerProximoOrden();
+
+            document.getElementById(
+                "ordenParada"
+            ).value =
+                orden;
+
+        }
+
+
+        esperandoUbicacion = true;
+
+
+        const estado =
+            document.getElementById(
+                "estadoMapa"
+            );
+
+
+        estado.style.display = "block";
+
+
+        estado.innerHTML =
+            "👆 Ahora tocá/clickeá en el mapa " +
+            "donde está la parada.";
+
+
+    }
+);
+
+
+/* =====================================================
+   AGREGAR PARADA
+===================================================== */
+
+function agregarParada() {
+
     if (
-        event.request.method === "GET" &&
-        (
-            event.request.url.endsWith("/index.html") ||
-            event.request.url.endsWith("/manifest.json") ||
-            event.request.url.endsWith("/")
-        )
+        latitudSeleccionada === null ||
+        longitudSeleccionada === null
     ) {
 
-        event.respondWith(
+        return;
 
-            fetch(event.request)
-            .then(function(response) {
+    }
 
-                const copia =
-                    response.clone();
 
-                caches.open(CACHE_NAME)
-                .then(function(cache) {
+    const linea =
+        document.getElementById(
+            "lineaAdmin"
+        ).value;
 
-                    cache.put(
-                        event.request,
-                        copia
-                    );
 
-                });
+    const sentido =
+        document.getElementById(
+            "sentidoAdmin"
+        ).value;
 
-                return response;
 
-            })
-            .catch(function() {
+    const nombre =
+        document.getElementById(
+            "nombreParada"
+        ).value.trim();
 
-                return caches.match(
-                    event.request
-                );
 
-            })
+    const orden =
+        parseInt(
+            document.getElementById(
+                "ordenParada"
+            ).value
+        );
 
+
+    const existe =
+        recorridos[linea][sentido]
+        .some(
+            p => Number(p.orden) === orden
+        );
+
+
+    if (existe) {
+
+        alert(
+            "Ya existe una parada con ese número de orden."
         );
 
         return;
@@ -102,25 +935,1243 @@ self.addEventListener("fetch", function(event) {
     }
 
 
-    /*
-       Para el resto de archivos:
-       usamos caché si existe y,
-       si no, Internet.
-    */
+    const parada = {
 
-    event.respondWith(
+        id:
+            Date.now(),
 
-        caches.match(event.request)
-        .then(function(respuesta) {
+        nombre:
+            nombre,
 
-            if (respuesta) {
-                return respuesta;
-            }
+        orden:
+            orden,
 
-            return fetch(event.request);
+        latitud:
+            latitudSeleccionada,
 
-        })
+        longitud:
+            longitudSeleccionada
 
+    };
+
+
+    recorridos[linea][sentido].push(
+        parada
     );
 
-});
+
+    recorridos[linea][sentido].sort(
+        (a, b) =>
+            Number(a.orden) -
+            Number(b.orden)
+    );
+
+
+    guardarRecorridos();
+
+
+    document.getElementById(
+        "nombreParada"
+    ).value = "";
+
+
+    /*
+       Después de guardar,
+       mostramos automáticamente
+       el siguiente número.
+    */
+
+    document.getElementById(
+        "ordenParada"
+    ).value =
+        obtenerProximoOrden();
+
+
+    latitudSeleccionada = null;
+
+    longitudSeleccionada = null;
+
+
+    document.getElementById(
+        "estadoMapa"
+    ).style.display = "block";
+
+
+    document.getElementById(
+        "estadoMapa"
+    ).innerHTML =
+        "✅ Parada agregada correctamente.";
+
+
+    actualizarListaParadas();
+
+    actualizarMapa();
+
+    actualizarSelectParadas();
+
+}
+
+
+/* =====================================================
+   MOSTRAR LISTA DE PARADAS
+===================================================== */
+
+function actualizarListaParadas() {
+
+    const linea =
+        document.getElementById(
+            "lineaAdmin"
+        ).value;
+
+
+    const sentido =
+        document.getElementById(
+            "sentidoAdmin"
+        ).value;
+
+
+    const lista =
+        document.getElementById(
+            "listaParadas"
+        );
+
+
+    lista.innerHTML = "";
+
+
+    const paradas =
+        recorridos[linea][sentido]
+        .slice()
+        .sort(
+            (a, b) =>
+                Number(a.orden) -
+                Number(b.orden)
+        );
+
+
+    /*
+       El contador pertenece SOLAMENTE
+       a la línea y sentido seleccionados.
+    */
+
+    document.getElementById(
+        "contadorParadas"
+    ).innerHTML =
+        "📍 " +
+        paradas.length +
+        " paradas cargadas";
+
+
+    if (paradas.length === 0) {
+
+        lista.innerHTML =
+            '<div class="info">' +
+            "Todavía no hay paradas cargadas " +
+            "para " +
+            linea +
+            " - " +
+            sentido +
+            "." +
+            "<br><br>" +
+            "La próxima parada comenzará en el número 1." +
+            "</div>";
+
+        return;
+
+    }
+
+
+    paradas.forEach(
+        function(parada) {
+
+            const div =
+                document.createElement(
+                    "div"
+                );
+
+
+            div.className =
+                "parada";
+
+
+            div.innerHTML =
+
+                "<strong>" +
+                parada.orden +
+                ". " +
+                escapeHTML(parada.nombre) +
+                "</strong>" +
+
+                "<br>" +
+
+                "📍 " +
+                parada.latitud.toFixed(6) +
+                ", " +
+                parada.longitud.toFixed(6);
+
+
+            const boton =
+                document.createElement(
+                    "button"
+                );
+
+
+            boton.className =
+                "danger";
+
+
+            boton.innerText =
+                "🗑️ Eliminar parada";
+
+
+            boton.onclick =
+                function() {
+
+                    if (
+                        confirm(
+                            "¿Eliminar esta parada?"
+                        )
+                    ) {
+
+                        recorridos[linea][sentido] =
+                            recorridos[linea][sentido]
+                            .filter(
+                                p =>
+                                    p.id !== parada.id
+                            );
+
+
+                        guardarRecorridos();
+
+                        actualizarOrdenAutomatico();
+
+                        actualizarListaParadas();
+
+                        actualizarMapa();
+
+                        actualizarSelectParadas();
+
+                    }
+
+                };
+
+
+            div.appendChild(
+                boton
+            );
+
+
+            lista.appendChild(
+                div
+            );
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   COLOR DE LÍNEA
+===================================================== */
+
+function obtenerColorLinea(linea) {
+
+    if (linea === "108A") {
+
+        return "#d32f2f";
+
+    }
+
+
+    if (linea === "110A") {
+
+        return "#f2c300";
+
+    }
+
+
+    return "#1769ff";
+
+}
+
+
+/* =====================================================
+   MOSTRAR RECORRIDO EN MAPA
+===================================================== */
+
+function actualizarMapa() {
+
+    marcadores.forEach(
+        function(marker) {
+
+            mapa.removeLayer(marker);
+
+        }
+    );
+
+
+    marcadores = [];
+
+
+    if (lineaRecorrido) {
+
+        mapa.removeLayer(
+            lineaRecorrido
+        );
+
+        lineaRecorrido = null;
+
+    }
+
+
+    const linea =
+        document.getElementById(
+            "lineaMapa"
+        ).value;
+
+
+    const sentido =
+        document.getElementById(
+            "sentidoMapa"
+        ).value;
+
+
+    const paradas =
+        recorridos[linea][sentido]
+        .slice()
+        .sort(
+            (a, b) =>
+                Number(a.orden) -
+                Number(b.orden)
+        );
+
+
+    const puntos = [];
+
+
+    paradas.forEach(
+        function(parada) {
+
+            const marker =
+                L.circleMarker(
+                    [
+                        parada.latitud,
+                        parada.longitud
+                    ],
+                    {
+                        radius: 7,
+
+                        color:
+                            obtenerColorLinea(
+                                linea
+                            ),
+
+                        fillColor:
+                            obtenerColorLinea(
+                                linea
+                            ),
+
+                        fillOpacity: 0.85
+                    }
+                )
+                .addTo(mapa);
+
+
+            marker.bindPopup(
+
+                "<strong>" +
+                parada.orden +
+                ". " +
+                escapeHTML(parada.nombre) +
+                "</strong>" +
+
+                "<br>" +
+
+                linea +
+                " - " +
+                sentido
+
+            );
+
+
+            marcadores.push(
+                marker
+            );
+
+
+            puntos.push(
+                [
+                    parada.latitud,
+                    parada.longitud
+                ]
+            );
+
+        }
+    );
+
+
+    if (puntos.length >= 2) {
+
+        lineaRecorrido =
+            L.polyline(
+                puntos,
+                {
+                    color:
+                        obtenerColorLinea(
+                            linea
+                        ),
+
+                    weight: 5,
+
+                    opacity: 0.8
+                }
+            ).addTo(mapa);
+
+
+        mapa.fitBounds(
+            lineaRecorrido.getBounds(),
+            {
+                padding: [30, 30]
+            }
+        );
+
+    }
+    else if (puntos.length === 1) {
+
+        mapa.setView(
+            puntos[0],
+            16
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   ACTUALIZAR SELECT DE PARADAS
+===================================================== */
+
+function actualizarSelectParadas() {
+
+    const linea =
+        document.getElementById(
+            "lineaObservacion"
+        ).value;
+
+
+    const sentido =
+        document.getElementById(
+            "sentidoObservacion"
+        ).value;
+
+
+    const select =
+        document.getElementById(
+            "paradaObservacion"
+        );
+
+
+    select.innerHTML = "";
+
+
+    const opcionInicial =
+        document.createElement(
+            "option"
+        );
+
+
+    opcionInicial.value = "";
+
+    opcionInicial.textContent =
+        "Seleccioná una parada";
+
+
+    select.appendChild(
+        opcionInicial
+    );
+
+
+    const paradas =
+        recorridos[linea][sentido]
+        .slice()
+        .sort(
+            (a, b) =>
+                Number(a.orden) -
+                Number(b.orden)
+        );
+
+
+    paradas.forEach(
+        function(parada) {
+
+            const opcion =
+                document.createElement(
+                    "option"
+                );
+
+
+            opcion.value =
+                parada.id;
+
+
+            opcion.textContent =
+                parada.orden +
+                " - " +
+                parada.nombre;
+
+
+            select.appendChild(
+                opcion
+            );
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   GUARDAR OBSERVACIÓN
+===================================================== */
+
+document
+.getElementById(
+    "btnGuardarObservacion"
+)
+.addEventListener(
+    "click",
+    function() {
+
+        const linea =
+            document.getElementById(
+                "lineaObservacion"
+            ).value;
+
+
+        const sentido =
+            document.getElementById(
+                "sentidoObservacion"
+            ).value;
+
+
+        const idParada =
+            Number(
+                document.getElementById(
+                    "paradaObservacion"
+                ).value
+            );
+
+
+        const fecha =
+            document.getElementById(
+                "fechaObservacion"
+            ).value;
+
+
+        const hora =
+            document.getElementById(
+                "horaObservacion"
+            ).value;
+
+
+        const trafico =
+            Number(
+                document.getElementById(
+                    "trafico"
+                ).value
+            );
+
+
+        const tiempo =
+            Number(
+                document.getElementById(
+                    "tiempoLlegada"
+                ).value
+            );
+
+
+        if (!idParada) {
+
+            alert(
+                "Seleccioná una parada."
+            );
+
+            return;
+
+        }
+
+
+        if (!fecha) {
+
+            alert(
+                "Seleccioná la fecha."
+            );
+
+            return;
+
+        }
+
+
+        if (!hora) {
+
+            alert(
+                "Seleccioná la hora."
+            );
+
+            return;
+
+        }
+
+
+        if (
+            isNaN(tiempo) ||
+            tiempo < 0
+        ) {
+
+            alert(
+                "Ingresá un tiempo de llegada válido."
+            );
+
+            return;
+
+        }
+
+
+        const parada =
+            recorridos[linea][sentido]
+            .find(
+                p =>
+                    Number(p.id) === idParada
+            );
+
+
+        if (!parada) {
+
+            alert(
+                "No se encontró la parada."
+            );
+
+            return;
+
+        }
+
+
+        const observacion = {
+
+            id:
+                Date.now(),
+
+            fecha:
+                fecha,
+
+            hora:
+                hora,
+
+            linea:
+                linea,
+
+            sentido:
+                sentido,
+
+            id_parada:
+                parada.id,
+
+            nombre_parada:
+                parada.nombre,
+
+            orden:
+                parada.orden,
+
+            latitud:
+                parada.latitud,
+
+            longitud:
+                parada.longitud,
+
+            trafico:
+                trafico,
+
+            tiempo_llegada:
+                tiempo
+
+        };
+
+
+        observaciones.push(
+            observacion
+        );
+
+
+        guardarObservaciones();
+
+
+        document.getElementById(
+            "tiempoLlegada"
+        ).value = "";
+
+
+        alert(
+            "✅ Observación guardada."
+        );
+
+
+        actualizarListaObservaciones();
+
+    }
+);
+
+
+/* =====================================================
+   MOSTRAR OBSERVACIONES
+===================================================== */
+
+function actualizarListaObservaciones() {
+
+    const contenedor =
+        document.getElementById(
+            "listaObservaciones"
+        );
+
+
+    contenedor.innerHTML = "";
+
+
+    document.getElementById(
+        "cantidadObservaciones"
+    ).innerText =
+        observaciones.length +
+        " observaciones guardadas";
+
+
+    const ultimas =
+        observaciones
+        .slice()
+        .reverse()
+        .slice(0, 20);
+
+
+    ultimas.forEach(
+        function(obs) {
+
+            const div =
+                document.createElement(
+                    "div"
+                );
+
+
+            div.className =
+                "parada";
+
+
+            div.innerHTML =
+
+                "<strong>" +
+                obs.linea +
+                " - " +
+                obs.sentido +
+                "</strong>" +
+
+                "<br>" +
+
+                "📍 " +
+                escapeHTML(
+                    obs.nombre_parada
+                ) +
+
+                "<br>" +
+
+                "📅 " +
+                obs.fecha +
+
+                " ⏰ " +
+                obs.hora +
+
+                "<br>" +
+
+                "🚦 Tráfico: " +
+                obs.trafico +
+
+                "<br>" +
+
+                "⏱️ Llegada: " +
+                obs.tiempo_llegada +
+                " minutos";
+
+
+            contenedor.appendChild(
+                div
+            );
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   EXPORTAR RECORRIDOS CSV
+===================================================== */
+
+document
+.getElementById(
+    "btnExportarRecorridos"
+)
+.addEventListener(
+    "click",
+    function() {
+
+        let csv =
+            "linea,sentido,orden,id_parada,nombre,latitud,longitud\n";
+
+
+        Object.keys(
+            recorridos
+        ).forEach(
+            function(linea) {
+
+                Object.keys(
+                    recorridos[linea]
+                ).forEach(
+                    function(sentido) {
+
+                        recorridos[linea][sentido]
+                        .slice()
+                        .sort(
+                            (a, b) =>
+                                Number(a.orden) -
+                                Number(b.orden)
+                        )
+                        .forEach(
+                            function(parada) {
+
+                                csv +=
+
+                                    linea + "," +
+
+                                    sentido + "," +
+
+                                    parada.orden + "," +
+
+                                    parada.id + "," +
+
+                                    '"' +
+                                    limpiarCSV(
+                                        parada.nombre
+                                    ) +
+                                    '"' + "," +
+
+                                    parada.latitud + "," +
+
+                                    parada.longitud +
+
+                                    "\n";
+
+                            }
+                        );
+
+                    }
+                );
+
+            }
+        );
+
+
+        descargarCSV(
+            csv,
+            "recorridos_paradas.csv"
+        );
+
+    }
+);
+
+
+/* =====================================================
+   EXPORTAR OBSERVACIONES
+===================================================== */
+
+document
+.getElementById(
+    "btnExportarObservaciones"
+)
+.addEventListener(
+    "click",
+    function() {
+
+        let csv =
+
+            "fecha,hora,linea,sentido," +
+            "id_parada,nombre_parada,orden," +
+            "latitud,longitud,trafico," +
+            "tiempo_llegada\n";
+
+
+        observaciones.forEach(
+            function(obs) {
+
+                csv +=
+
+                    obs.fecha + "," +
+
+                    obs.hora + "," +
+
+                    obs.linea + "," +
+
+                    obs.sentido + "," +
+
+                    obs.id_parada + "," +
+
+                    '"' +
+                    limpiarCSV(
+                        obs.nombre_parada
+                    ) +
+                    '"' + "," +
+
+                    obs.orden + "," +
+
+                    obs.latitud + "," +
+
+                    obs.longitud + "," +
+
+                    obs.trafico + "," +
+
+                    obs.tiempo_llegada +
+
+                    "\n";
+
+            }
+        );
+
+
+        descargarCSV(
+            csv,
+            "observaciones_colectivos.csv"
+        );
+
+    }
+);
+
+
+/* =====================================================
+   DESCARGAR CSV
+===================================================== */
+
+function descargarCSV(
+    contenido,
+    nombre
+) {
+
+    const blob =
+        new Blob(
+            [
+                "\ufeff" +
+                contenido
+            ],
+            {
+                type:
+                    "text/csv;charset=utf-8;"
+            }
+        );
+
+
+    const url =
+        URL.createObjectURL(
+            blob
+        );
+
+
+    const enlace =
+        document.createElement(
+            "a"
+        );
+
+
+    enlace.href = url;
+
+    enlace.download = nombre;
+
+    enlace.click();
+
+
+    URL.revokeObjectURL(
+        url
+    );
+
+}
+
+
+/* =====================================================
+   BORRAR OBSERVACIONES
+===================================================== */
+
+document
+.getElementById(
+    "btnBorrarObservaciones"
+)
+.addEventListener(
+    "click",
+    function() {
+
+        if (
+            !confirm(
+                "¿Seguro que querés borrar TODAS las observaciones?"
+            )
+        ) {
+
+            return;
+
+        }
+
+
+        observaciones = [];
+
+
+        guardarObservaciones();
+
+
+        actualizarListaObservaciones();
+
+
+        alert(
+            "Observaciones eliminadas."
+        );
+
+    }
+);
+
+
+/* =====================================================
+   CAMBIOS DE ADMINISTRACIÓN
+===================================================== */
+
+document
+.getElementById(
+    "lineaAdmin"
+)
+.addEventListener(
+    "change",
+    cambioRecorridoAdmin
+);
+
+
+document
+.getElementById(
+    "sentidoAdmin"
+)
+.addEventListener(
+    "change",
+    cambioRecorridoAdmin
+);
+
+
+/* =====================================================
+   CAMBIOS DEL MAPA
+===================================================== */
+
+document
+.getElementById(
+    "lineaMapa"
+)
+.addEventListener(
+    "change",
+    actualizarMapa
+);
+
+
+document
+.getElementById(
+    "sentidoMapa"
+)
+.addEventListener(
+    "change",
+    actualizarMapa
+);
+
+
+/* =====================================================
+   CAMBIOS DE OBSERVACIONES
+===================================================== */
+
+document
+.getElementById(
+    "lineaObservacion"
+)
+.addEventListener(
+    "change",
+    actualizarSelectParadas
+);
+
+
+document
+.getElementById(
+    "sentidoObservacion"
+)
+.addEventListener(
+    "change",
+    actualizarSelectParadas
+);
+
+
+/* =====================================================
+   FECHA Y HORA AUTOMÁTICAS
+===================================================== */
+
+function ponerFechaHoraActual() {
+
+    const ahora =
+        new Date();
+
+
+    const año =
+        ahora.getFullYear();
+
+
+    const mes =
+        String(
+            ahora.getMonth() + 1
+        ).padStart(2, "0");
+
+
+    const dia =
+        String(
+            ahora.getDate()
+        ).padStart(2, "0");
+
+
+    const horas =
+        String(
+            ahora.getHours()
+        ).padStart(2, "0");
+
+
+    const minutos =
+        String(
+            ahora.getMinutes()
+        ).padStart(2, "0");
+
+
+    document.getElementById(
+        "fechaObservacion"
+    ).value =
+        año +
+        "-" +
+        mes +
+        "-" +
+        dia;
+
+
+    document.getElementById(
+        "horaObservacion"
+    ).value =
+        horas +
+        ":" +
+        minutos;
+
+}
+
+
+/* =====================================================
+   ACTUALIZAR TODO
+===================================================== */
+
+function actualizarTodo() {
+
+    actualizarListaParadas();
+
+    actualizarMapa();
+
+    actualizarSelectParadas();
+
+    actualizarListaObservaciones();
+
+    actualizarOrdenAutomatico();
+
+}
+
+
+/* =====================================================
+   SEGURIDAD HTML
+===================================================== */
+
+function escapeHTML(texto) {
+
+    return String(texto)
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
+}
+
+
+/* =====================================================
+   LIMPIAR CSV
+===================================================== */
+
+function limpiarCSV(texto) {
+
+    return String(texto)
+        .replace(
+            /"/g,
+            '""'
+        );
+
+}
+
+
+/* =====================================================
+   INICIAR
+===================================================== */
+
+ponerFechaHoraActual();
+
+actualizarTodo();
+
+
+/* =====================================================
+   SERVICE WORKER
+===================================================== */
+
+if (
+    "serviceWorker" in navigator
+) {
+
+    navigator.serviceWorker.register(
+        "./sw.js"
+    )
+    .catch(
+        function(error) {
+
+            console.log(
+                "Error Service Worker:",
+                error
+            );
+
+        }
+    );
+
+}
+
+
+</script>
+
+</body>
+
+</html>

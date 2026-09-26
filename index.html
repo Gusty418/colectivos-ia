@@ -5,14 +5,13 @@
 
 <meta charset="UTF-8">
 
-<meta name="viewport"
-content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Colectivos IA</title>
 
 <link
-rel="stylesheet"
-href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
 />
 
 <style>
@@ -151,6 +150,7 @@ button {
 
 <div class="contenedor">
 
+
 <div class="tarjeta">
 
 <h1>🚌 Colectivos IA</h1>
@@ -166,8 +166,9 @@ Registro de colectivos y paradas
 <div id="mapa"></div>
 
 <button
-class="parada"
-id="botonAgregarParada">
+    class="parada"
+    id="botonAgregarParada"
+>
 📍 Agregar parada
 </button>
 
@@ -180,37 +181,41 @@ id="botonAgregarParada">
 
 <form id="formulario">
 
+
 <label>📅 Fecha</label>
 
 <input
-type="date"
-id="fecha"
-required
+    type="date"
+    id="fecha"
+    required
 >
 
 
 <label>🕐 Hora</label>
 
 <input
-type="time"
-id="hora"
-required
+    type="time"
+    id="hora"
+    required
 >
 
 
 <label>🚌 Línea</label>
 
 <input
-type="text"
-id="linea"
-placeholder="Ej: 108A"
-required
+    type="text"
+    id="linea"
+    placeholder="Ej: 108A"
+    required
 >
 
 
 <label>📍 Parada</label>
 
-<select id="paradaSeleccionada" required>
+<select
+    id="paradaSeleccionada"
+    required
+>
 
 <option value="">
 Seleccionar parada
@@ -223,16 +228,12 @@ Seleccionar parada
 
 <select id="sentido">
 
-<option>
-Hospital Vidal
+<option value="Ida">
+Ida
 </option>
 
-<option>
-Otro destino
-</option>
-
-<option>
-Otro
+<option value="Vuelta">
+Vuelta
 </option>
 
 </select>
@@ -241,30 +242,30 @@ Otro
 <label>🚗 Tráfico (1-5)</label>
 
 <input
-type="number"
-id="trafico"
-min="1"
-max="5"
-value="3"
-required
+    type="number"
+    id="trafico"
+    min="1"
+    max="5"
+    value="3"
+    required
 >
 
 
 <label>⏱️ Tiempo de llegada (minutos)</label>
 
 <input
-type="number"
-id="tiempo"
-min="0"
-step="0.1"
-placeholder="Ej: 7"
-required
+    type="number"
+    id="tiempo"
+    min="0"
+    step="0.1"
+    placeholder="Ej: 7"
+    required
 >
 
 
 <button
-type="submit"
-class="guardar"
+    type="submit"
+    class="guardar"
 >
 💾 GUARDAR OBSERVACIÓN
 </button>
@@ -283,30 +284,34 @@ class="guardar"
 
 </div>
 
+
 <button
-class="gps"
-id="botonGPS"
+    class="gps"
+    id="botonGPS"
 >
 📍 Guardar GPS de la última observación
 </button>
 
+
 <button
-class="exportar"
-id="botonExportar"
+    class="exportar"
+    id="botonExportar"
 >
 📤 Exportar observaciones CSV
 </button>
 
+
 <button
-class="exportar"
-id="botonExportarParadas"
+    class="exportar"
+    id="botonExportarParadas"
 >
 📤 Exportar paradas CSV
 </button>
 
+
 <button
-class="borrar"
-id="botonBorrar"
+    class="borrar"
+    id="botonBorrar"
 >
 🗑️ Borrar todas las observaciones
 </button>
@@ -343,8 +348,8 @@ No hay observaciones todavía.
 
 
 <script
-src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
-</script>
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+></script>
 
 
 <script>
@@ -358,29 +363,33 @@ const CLAVE_PARADAS =
 
 let observaciones =
 JSON.parse(
-localStorage.getItem(CLAVE_OBSERVACIONES) || "[]"
+    localStorage.getItem(
+        CLAVE_OBSERVACIONES
+    ) || "[]"
 );
 
 
 let paradas =
 JSON.parse(
-localStorage.getItem(CLAVE_PARADAS) || "[]"
+    localStorage.getItem(
+        CLAVE_PARADAS
+    ) || "[]"
 );
 
 
 const mapa =
 L.map("mapa").setView(
-[-27.4692, -58.8306],
-14
+    [-27.4692, -58.8306],
+    14
 );
 
 
 L.tileLayer(
-"https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-{
-    attribution:
-    '&copy; OpenStreetMap contributors'
-}
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {
+        attribution:
+        '&copy; OpenStreetMap contributors'
+    }
 ).addTo(mapa);
 
 
@@ -406,7 +415,11 @@ function actualizarMapa() {
 
     marcadores.forEach(
         function(marcador) {
-            mapa.removeLayer(marcador);
+
+            mapa.removeLayer(
+                marcador
+            );
+
         }
     );
 
@@ -432,7 +445,9 @@ function actualizarMapa() {
             );
 
 
-            marcadores.push(marcador);
+            marcadores.push(
+                marcador
+            );
 
         }
     );
@@ -456,15 +471,22 @@ function actualizarSelect() {
         function(parada) {
 
             const opcion =
-            document.createElement("option");
+            document.createElement(
+                "option"
+            );
+
 
             opcion.value =
             parada.id;
 
+
             opcion.textContent =
             parada.nombre;
 
-            select.appendChild(opcion);
+
+            select.appendChild(
+                opcion
+            );
 
         }
     );
@@ -480,7 +502,9 @@ function actualizarListaParadas() {
     );
 
 
-    if (paradas.length === 0) {
+    if (
+        paradas.length === 0
+    ) {
 
         lista.innerHTML =
         "No hay paradas todavía.";
@@ -497,7 +521,10 @@ function actualizarListaParadas() {
         function(parada) {
 
             const elemento =
-            document.createElement("div");
+            document.createElement(
+                "div"
+            );
+
 
             elemento.className =
             "observacion";
@@ -505,28 +532,38 @@ function actualizarListaParadas() {
 
             elemento.innerHTML = `
 
-                <b>📍 ${parada.nombre}</b><br>
+                <b>
+                    📍 ${parada.nombre}
+                </b>
 
-                ID: ${parada.id}<br>
+                <br>
+
+                ID:
+                ${parada.id}
+
+                <br>
 
                 Latitud:
                 ${parada.latitud.toFixed(6)}
+
                 <br>
 
                 Longitud:
                 ${parada.longitud.toFixed(6)}
 
                 <button
-                onclick="eliminarParada(${parada.id})"
-                class="borrar"
+                    onclick="eliminarParada(${parada.id})"
+                    class="borrar"
                 >
-                🗑️ Eliminar
+                    🗑️ Eliminar
                 </button>
 
             `;
 
 
-            lista.appendChild(elemento);
+            lista.appendChild(
+                elemento
+            );
 
         }
     );
@@ -543,14 +580,18 @@ function eliminarParada(id) {
 
 
     if (!confirmar) {
+
         return;
+
     }
 
 
     paradas =
     paradas.filter(
         function(parada) {
+
             return parada.id !== id;
+
         }
     );
 
@@ -590,7 +631,9 @@ document
 
 
                 if (!nombre) {
+
                     return;
+
                 }
 
 
@@ -649,25 +692,37 @@ function colocarFechaHora() {
     const mes =
     String(
         ahora.getMonth() + 1
-    ).padStart(2, "0");
+    ).padStart(
+        2,
+        "0"
+    );
 
 
     const dia =
     String(
         ahora.getDate()
-    ).padStart(2, "0");
+    ).padStart(
+        2,
+        "0"
+    );
 
 
     const horas =
     String(
         ahora.getHours()
-    ).padStart(2, "0");
+    ).padStart(
+        2,
+        "0"
+    );
 
 
     const minutos =
     String(
         ahora.getMinutes()
-    ).padStart(2, "0");
+    ).padStart(
+        2,
+        "0"
+    );
 
 
     document.getElementById(
@@ -688,7 +743,9 @@ colocarFechaHora();
 
 
 document
-.getElementById("formulario")
+.getElementById(
+    "formulario"
+)
 .addEventListener(
     "submit",
     function(evento) {
@@ -707,7 +764,9 @@ document
         const parada =
         paradas.find(
             function(p) {
+
                 return p.id === idParada;
+
             }
         );
 
@@ -819,7 +878,9 @@ function actualizarPantalla() {
     );
 
 
-    if (observaciones.length === 0) {
+    if (
+        observaciones.length === 0
+    ) {
 
         lista.innerHTML =
         "No hay observaciones todavía.";
@@ -833,7 +894,10 @@ function actualizarPantalla() {
     observaciones
     .slice()
     .reverse()
-    .slice(0, 10);
+    .slice(
+        0,
+        10
+    );
 
 
     lista.innerHTML = "";
@@ -843,7 +907,9 @@ function actualizarPantalla() {
         function(obs) {
 
             const elemento =
-            document.createElement("div");
+            document.createElement(
+                "div"
+            );
 
 
             elemento.className =
@@ -852,17 +918,30 @@ function actualizarPantalla() {
 
             elemento.innerHTML = `
 
-                <b>🚌 ${obs.linea}</b><br>
+                <b>
+                    🚌 ${obs.linea}
+                </b>
+
+                <br>
 
                 📅 ${obs.fecha}
-                🕐 ${obs.hora}<br>
 
-                📍 ${obs.parada}<br>
+                🕐 ${obs.hora}
 
-                ➡️ ${obs.sentido}<br>
+                <br>
+
+                📍 ${obs.parada}
+
+                <br>
+
+                ➡️ ${obs.sentido}
+
+                <br>
 
                 🚗 Tráfico:
-                ${obs.trafico}/5<br>
+                ${obs.trafico}/5
+
+                <br>
 
                 ⏱️ Llegada:
                 ${obs.tiempo} minutos
@@ -881,7 +960,9 @@ function actualizarPantalla() {
 
 
 document
-.getElementById("botonGPS")
+.getElementById(
+    "botonGPS"
+)
 .addEventListener(
     "click",
     function() {
@@ -932,6 +1013,7 @@ document
 
                 guardarTodo();
 
+
                 alert(
                     "📍 GPS guardado."
                 );
@@ -947,8 +1029,11 @@ document
             },
 
             {
-                enableHighAccuracy: true,
-                timeout: 10000
+                enableHighAccuracy:
+                true,
+
+                timeout:
+                10000
             }
 
         );
@@ -958,7 +1043,9 @@ document
 
 
 document
-.getElementById("botonExportar")
+.getElementById(
+    "botonExportar"
+)
 .addEventListener(
     "click",
     function() {
@@ -1037,7 +1124,9 @@ document
     "click",
     function() {
 
-        if (paradas.length === 0) {
+        if (
+            paradas.length === 0
+        ) {
 
             alert(
                 "No hay paradas."
@@ -1100,7 +1189,9 @@ function descargarCSV(
 
 
     const enlace =
-    document.createElement("a");
+    document.createElement(
+        "a"
+    );
 
 
     enlace.href =
@@ -1122,7 +1213,9 @@ function descargarCSV(
 
 
 document
-.getElementById("botonBorrar")
+.getElementById(
+    "botonBorrar"
+)
 .addEventListener(
     "click",
     function() {
@@ -1134,7 +1227,9 @@ document
 
 
         if (!confirmar) {
+
             return;
+
         }
 
 

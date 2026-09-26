@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
+
     <meta charset="UTF-8">
 
     <meta name="viewport"
@@ -151,6 +153,15 @@
             font-size: 14px;
             color: #555;
             margin-top: 8px;
+            font-weight: bold;
+        }
+
+        .linea-108 {
+            color: #c62828;
+        }
+
+        .linea-110 {
+            color: #d89b00;
         }
 
         @media (max-width: 600px) {
@@ -166,9 +177,12 @@
         }
 
     </style>
+
 </head>
 
+
 <body>
+
 
 <header>
 
@@ -193,6 +207,7 @@
         <div class="info">
 
             Acá cargás las paradas permanentes de cada recorrido.
+
             <br><br>
 
             Una vez cargadas, no necesitás volver a crearlas
@@ -209,9 +224,9 @@
 
                 <select id="lineaAdmin">
 
-                    <option value="108A">108A</option>
+                    <option value="108A">108A - 🔴 ERSA</option>
 
-                    <option value="110A">110A</option>
+                    <option value="110A">110A - 🟡 Miramar</option>
 
                 </select>
 
@@ -269,9 +284,7 @@
         ></div>
 
 
-        <div
-            id="listaParadas"
-        ></div>
+        <div id="listaParadas"></div>
 
 
         <div class="contador" id="contadorParadas"></div>
@@ -305,9 +318,9 @@
 
                 <select id="lineaMapa">
 
-                    <option value="108A">108A</option>
+                    <option value="108A">108A - 🔴 ERSA</option>
 
-                    <option value="110A">110A</option>
+                    <option value="110A">110A - 🟡 Miramar</option>
 
                 </select>
 
@@ -361,9 +374,9 @@
 
                 <select id="lineaObservacion">
 
-                    <option value="108A">108A</option>
+                    <option value="108A">108A - 🔴 ERSA</option>
 
-                    <option value="110A">110A</option>
+                    <option value="110A">110A - 🟡 Miramar</option>
 
                 </select>
 
@@ -519,30 +532,42 @@ const CLAVE_OBSERVACIONES = "observaciones_colectivos";
 
 
 /* =====================================================
-   RECORRIDOS INICIALES
+   RECORRIDOS
 ===================================================== */
 
 let recorridos = JSON.parse(
     localStorage.getItem(CLAVE_RECORRIDOS)
-) || {
+) || {};
 
-    "108A": {
 
-        "Ida": [],
+/*
+   Nos aseguramos de que existan
+   las 4 combinaciones.
+*/
 
-        "Vuelta": []
+if (!recorridos["108A"]) {
+    recorridos["108A"] = {};
+}
 
-    },
+if (!recorridos["110A"]) {
+    recorridos["110A"] = {};
+}
 
-    "110A": {
+if (!recorridos["108A"]["Ida"]) {
+    recorridos["108A"]["Ida"] = [];
+}
 
-        "Ida": [],
+if (!recorridos["108A"]["Vuelta"]) {
+    recorridos["108A"]["Vuelta"] = [];
+}
 
-        "Vuelta": []
+if (!recorridos["110A"]["Ida"]) {
+    recorridos["110A"]["Ida"] = [];
+}
 
-    }
-
-};
+if (!recorridos["110A"]["Vuelta"]) {
+    recorridos["110A"]["Vuelta"] = [];
+}
 
 
 let observaciones = JSON.parse(
@@ -614,6 +639,124 @@ function guardarObservaciones() {
 
 
 /* =====================================================
+   OBTENER PRÓXIMO ORDEN
+===================================================== */
+
+function obtenerProximoOrden() {
+
+    const linea =
+        document.getElementById(
+            "lineaAdmin"
+        ).value;
+
+
+    const sentido =
+        document.getElementById(
+            "sentidoAdmin"
+        ).value;
+
+
+    const paradas =
+        recorridos[linea][sentido];
+
+
+    if (!paradas || paradas.length === 0) {
+
+        return 1;
+
+    }
+
+
+    const mayorOrden =
+        Math.max(
+            ...paradas.map(
+                p => Number(p.orden) || 0
+            )
+        );
+
+
+    return mayorOrden + 1;
+
+}
+
+
+/* =====================================================
+   ACTUALIZAR ORDEN AUTOMÁTICO
+===================================================== */
+
+function actualizarOrdenAutomatico() {
+
+    const input =
+        document.getElementById(
+            "ordenParada"
+        );
+
+
+    input.value =
+        obtenerProximoOrden();
+
+}
+
+
+/* =====================================================
+   CAMBIO DE LÍNEA / SENTIDO
+===================================================== */
+
+function cambioRecorridoAdmin() {
+
+    /*
+       Cancelamos cualquier selección
+       de ubicación pendiente.
+    */
+
+    esperandoUbicacion = false;
+
+    latitudSeleccionada = null;
+
+    longitudSeleccionada = null;
+
+
+    const estado =
+        document.getElementById(
+            "estadoMapa"
+        );
+
+
+    estado.style.display = "none";
+
+
+    /*
+       Limpiamos nombre.
+    */
+
+    document.getElementById(
+        "nombreParada"
+    ).value = "";
+
+
+    /*
+       El orden comienza automáticamente
+       desde 1 para Vuelta si está vacía.
+    */
+
+    actualizarOrdenAutomatico();
+
+
+    /*
+       Actualizamos solamente el
+       recorrido seleccionado.
+    */
+
+    actualizarListaParadas();
+
+    actualizarMapa();
+
+    actualizarSelectParadas();
+
+}
+
+
+/* =====================================================
    CLICK EN MAPA
 ===================================================== */
 
@@ -637,7 +780,9 @@ mapa.on(
 
 
         const estado =
-            document.getElementById("estadoMapa");
+            document.getElementById(
+                "estadoMapa"
+            );
 
 
         estado.style.display = "block";
@@ -673,7 +818,7 @@ document
             ).value.trim();
 
 
-        const orden =
+        let orden =
             parseInt(
                 document.getElementById(
                     "ordenParada"
@@ -691,13 +836,21 @@ document
         }
 
 
+        /*
+           Si el orden está vacío,
+           usamos automáticamente el siguiente.
+        */
+
         if (!orden || orden < 1) {
 
-            alert(
-                "Ingresá un número de orden válido."
-            );
+            orden =
+                obtenerProximoOrden();
 
-            return;
+            document.getElementById(
+                "ordenParada"
+            ).value =
+                orden;
+
         }
 
 
@@ -767,7 +920,7 @@ function agregarParada() {
     const existe =
         recorridos[linea][sentido]
         .some(
-            p => p.orden === orden
+            p => Number(p.orden) === orden
         );
 
 
@@ -808,7 +961,9 @@ function agregarParada() {
 
 
     recorridos[linea][sentido].sort(
-        (a, b) => a.orden - b.orden
+        (a, b) =>
+            Number(a.orden) -
+            Number(b.orden)
     );
 
 
@@ -820,9 +975,16 @@ function agregarParada() {
     ).value = "";
 
 
+    /*
+       Después de guardar,
+       mostramos automáticamente
+       el siguiente número.
+    */
+
     document.getElementById(
         "ordenParada"
-    ).value = "";
+    ).value =
+        obtenerProximoOrden();
 
 
     latitudSeleccionada = null;
@@ -832,11 +994,20 @@ function agregarParada() {
 
     document.getElementById(
         "estadoMapa"
+    ).style.display = "block";
+
+
+    document.getElementById(
+        "estadoMapa"
     ).innerHTML =
         "✅ Parada agregada correctamente.";
 
 
-    actualizarTodo();
+    actualizarListaParadas();
+
+    actualizarMapa();
+
+    actualizarSelectParadas();
 
 }
 
@@ -869,8 +1040,19 @@ function actualizarListaParadas() {
 
 
     const paradas =
-        recorridos[linea][sentido];
+        recorridos[linea][sentido]
+        .slice()
+        .sort(
+            (a, b) =>
+                Number(a.orden) -
+                Number(b.orden)
+        );
 
+
+    /*
+       El contador pertenece SOLAMENTE
+       a la línea y sentido seleccionados.
+    */
 
     document.getElementById(
         "contadorParadas"
@@ -880,12 +1062,26 @@ function actualizarListaParadas() {
         " paradas cargadas";
 
 
-    paradas
-    .slice()
-    .sort(
-        (a, b) => a.orden - b.orden
-    )
-    .forEach(
+    if (paradas.length === 0) {
+
+        lista.innerHTML =
+            '<div class="info">' +
+            "Todavía no hay paradas cargadas " +
+            "para " +
+            linea +
+            " - " +
+            sentido +
+            "." +
+            "<br><br>" +
+            "La próxima parada comenzará en el número 1." +
+            "</div>";
+
+        return;
+
+    }
+
+
+    paradas.forEach(
         function(parada) {
 
             const div =
@@ -947,7 +1143,13 @@ function actualizarListaParadas() {
 
                         guardarRecorridos();
 
-                        actualizarTodo();
+                        actualizarOrdenAutomatico();
+
+                        actualizarListaParadas();
+
+                        actualizarMapa();
+
+                        actualizarSelectParadas();
 
                     }
 
@@ -965,6 +1167,31 @@ function actualizarListaParadas() {
 
         }
     );
+
+}
+
+
+/* =====================================================
+   COLOR DE LÍNEA
+===================================================== */
+
+function obtenerColorLinea(linea) {
+
+    if (linea === "108A") {
+
+        return "#d32f2f";
+
+    }
+
+
+    if (linea === "110A") {
+
+        return "#f2c300";
+
+    }
+
+
+    return "#1769ff";
 
 }
 
@@ -1015,7 +1242,8 @@ function actualizarMapa() {
         .slice()
         .sort(
             (a, b) =>
-                a.orden - b.orden
+                Number(a.orden) -
+                Number(b.orden)
         );
 
 
@@ -1026,11 +1254,26 @@ function actualizarMapa() {
         function(parada) {
 
             const marker =
-                L.marker(
+                L.circleMarker(
                     [
                         parada.latitud,
                         parada.longitud
-                    ]
+                    ],
+                    {
+                        radius: 7,
+
+                        color:
+                            obtenerColorLinea(
+                                linea
+                            ),
+
+                        fillColor:
+                            obtenerColorLinea(
+                                linea
+                            ),
+
+                        fillOpacity: 0.85
+                    }
                 )
                 .addTo(mapa);
 
@@ -1072,7 +1315,17 @@ function actualizarMapa() {
 
         lineaRecorrido =
             L.polyline(
-                puntos
+                puntos,
+                {
+                    color:
+                        obtenerColorLinea(
+                            linea
+                        ),
+
+                    weight: 5,
+
+                    opacity: 0.8
+                }
             ).addTo(mapa);
 
 
@@ -1145,7 +1398,8 @@ function actualizarSelectParadas() {
         .slice()
         .sort(
             (a, b) =>
-                a.orden - b.orden
+                Number(a.orden) -
+                Number(b.orden)
         );
 
 
@@ -1289,7 +1543,7 @@ document
             recorridos[linea][sentido]
             .find(
                 p =>
-                    p.id === idParada
+                    Number(p.id) === idParada
             );
 
 
@@ -1445,6 +1699,7 @@ function actualizarListaObservaciones() {
                 obs.tiempo_llegada +
                 " minutos";
 
+
             contenedor.appendChild(
                 div
             );
@@ -1485,7 +1740,8 @@ document
                         .slice()
                         .sort(
                             (a, b) =>
-                                a.orden - b.orden
+                                Number(a.orden) -
+                                Number(b.orden)
                         )
                         .forEach(
                             function(parada) {
@@ -1695,7 +1951,7 @@ document
 )
 .addEventListener(
     "change",
-    actualizarTodo
+    cambioRecorridoAdmin
 );
 
 
@@ -1705,7 +1961,7 @@ document
 )
 .addEventListener(
     "change",
-    actualizarTodo
+    cambioRecorridoAdmin
 );
 
 
@@ -1829,6 +2085,8 @@ function actualizarTodo() {
 
     actualizarListaObservaciones();
 
+    actualizarOrdenAutomatico();
+
 }
 
 
@@ -1915,4 +2173,5 @@ if (
 </script>
 
 </body>
+
 </html>

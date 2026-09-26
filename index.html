@@ -8,7 +8,12 @@
 <meta name="viewport"
 content="width=device-width, initial-scale=1.0">
 
-<title>🚌 Registro de Colectivos</title>
+<title>Colectivos IA</title>
+
+<link
+rel="stylesheet"
+href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
 
 <style>
 
@@ -24,7 +29,7 @@ body {
 }
 
 .contenedor {
-    max-width: 500px;
+    max-width: 600px;
     margin: auto;
     padding: 15px;
 }
@@ -40,6 +45,10 @@ body {
 h1 {
     text-align: center;
     margin-top: 5px;
+}
+
+h2 {
+    margin-top: 0;
 }
 
 .subtitulo {
@@ -72,12 +81,17 @@ select {
 
 button {
     border: none;
-    margin-top: 15px;
+    margin-top: 12px;
     font-weight: bold;
     cursor: pointer;
 }
 
 .guardar {
+    background: #1769ff;
+    color: white;
+}
+
+.parada {
     background: #1769ff;
     color: white;
 }
@@ -97,13 +111,19 @@ button {
     color: #b00020;
 }
 
+#mapa {
+    height: 400px;
+    width: 100%;
+    border-radius: 15px;
+    margin-top: 15px;
+}
+
 .estado {
     padding: 12px;
     background: #eef5ff;
     border-radius: 10px;
     margin-bottom: 15px;
     text-align: center;
-    font-size: 14px;
 }
 
 .contador {
@@ -127,33 +147,40 @@ button {
 
 </head>
 
-
 <body>
 
-
 <div class="contenedor">
+
+<div class="tarjeta">
+
+<h1>🚌 Colectivos IA</h1>
+
+<div class="subtitulo">
+Registro de colectivos y paradas
+</div>
+
+<div class="estado">
+📍 Tocá el mapa para crear una parada
+</div>
+
+<div id="mapa"></div>
+
+<button
+class="parada"
+id="botonAgregarParada">
+📍 Agregar parada
+</button>
+
+</div>
 
 
 <div class="tarjeta">
 
-<h1>🚌 Registro de Colectivos</h1>
-
-<div class="subtitulo">
-Funciona sin internet
-</div>
-
-
-<div id="estado" class="estado">
-📴 Los datos se guardan en este teléfono
-</div>
-
+<h2>🚌 Registrar observación</h2>
 
 <form id="formulario">
 
-
-<label>
-📅 Fecha
-</label>
+<label>📅 Fecha</label>
 
 <input
 type="date"
@@ -162,9 +189,7 @@ required
 >
 
 
-<label>
-🕐 Hora en que viste el colectivo
-</label>
+<label>🕐 Hora</label>
 
 <input
 type="time"
@@ -173,9 +198,7 @@ required
 >
 
 
-<label>
-🚌 Línea
-</label>
+<label>🚌 Línea</label>
 
 <input
 type="text"
@@ -185,21 +208,18 @@ required
 >
 
 
-<label>
-📍 Parada
-</label>
+<label>📍 Parada</label>
 
-<input
-type="text"
-id="parada"
-placeholder="Ej: 15"
-required
->
+<select id="paradaSeleccionada" required>
+
+<option value="">
+Seleccionar parada
+</option>
+
+</select>
 
 
-<label>
-➡️ Sentido
-</label>
+<label>➡️ Sentido</label>
 
 <select id="sentido">
 
@@ -218,9 +238,7 @@ Otro
 </select>
 
 
-<label>
-🚗 Tráfico (1-5)
-</label>
+<label>🚗 Tráfico (1-5)</label>
 
 <input
 type="number"
@@ -232,9 +250,7 @@ required
 >
 
 
-<label>
-⏱️ Tiempo de llegada (minutos)
-</label>
+<label>⏱️ Tiempo de llegada (minutos)</label>
 
 <input
 type="number"
@@ -253,7 +269,6 @@ class="guardar"
 💾 GUARDAR OBSERVACIÓN
 </button>
 
-
 </form>
 
 </div>
@@ -261,140 +276,393 @@ class="guardar"
 
 <div class="tarjeta">
 
-
 <div class="contador">
 
-📊 Observaciones guardadas:
-<span id="cantidad">
-0
-</span>
+📊 Observaciones:
+<span id="cantidad">0</span>
 
 </div>
-
 
 <button
 class="gps"
 id="botonGPS"
 >
-📍 Guardar ubicación GPS
+📍 Guardar GPS de la última observación
 </button>
-
 
 <button
 class="exportar"
 id="botonExportar"
 >
-📤 Exportar datos CSV
+📤 Exportar observaciones CSV
 </button>
 
+<button
+class="exportar"
+id="botonExportarParadas"
+>
+📤 Exportar paradas CSV
+</button>
 
 <button
 class="borrar"
 id="botonBorrar"
 >
-🗑️ Borrar todos los datos
+🗑️ Borrar todas las observaciones
 </button>
-
 
 </div>
 
 
 <div class="tarjeta">
 
-<h2>
-📋 Últimas observaciones
-</h2>
+<h2>📍 Paradas guardadas</h2>
 
-<div id="lista">
+<div id="listaParadas">
+
+No hay paradas todavía.
+
+</div>
+
+</div>
+
+
+<div class="tarjeta">
+
+<h2>📋 Últimas observaciones</h2>
+
+<div id="listaObservaciones">
+
 No hay observaciones todavía.
+
+</div>
+
 </div>
 
 </div>
 
 
-</div>
+<script
+src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+</script>
 
 
 <script>
 
+const CLAVE_OBSERVACIONES =
+"observaciones_colectivos";
 
-// ==========================================
-// CONFIGURACIÓN
-// ==========================================
+const CLAVE_PARADAS =
+"paradas_colectivos";
 
-const CLAVE = "observaciones_colectivos";
-
-
-// ==========================================
-// CARGAR DATOS
-// ==========================================
 
 let observaciones =
 JSON.parse(
-localStorage.getItem(CLAVE) || "[]"
+localStorage.getItem(CLAVE_OBSERVACIONES) || "[]"
 );
 
 
-// ==========================================
-// ELEMENTOS
-// ==========================================
-
-const formulario =
-document.getElementById("formulario");
-
-const fecha =
-document.getElementById("fecha");
-
-const hora =
-document.getElementById("hora");
-
-const linea =
-document.getElementById("linea");
-
-const parada =
-document.getElementById("parada");
-
-const sentido =
-document.getElementById("sentido");
-
-const trafico =
-document.getElementById("trafico");
-
-const tiempo =
-document.getElementById("tiempo");
-
-const cantidad =
-document.getElementById("cantidad");
-
-const lista =
-document.getElementById("lista");
+let paradas =
+JSON.parse(
+localStorage.getItem(CLAVE_PARADAS) || "[]"
+);
 
 
-// ==========================================
-// FECHA Y HORA ACTUALES
-// ==========================================
+const mapa =
+L.map("mapa").setView(
+[-27.4692, -58.8306],
+14
+);
+
+
+L.tileLayer(
+"https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+{
+    attribution:
+    '&copy; OpenStreetMap contributors'
+}
+).addTo(mapa);
+
+
+let marcadores = [];
+
+
+function guardarTodo() {
+
+    localStorage.setItem(
+        CLAVE_OBSERVACIONES,
+        JSON.stringify(observaciones)
+    );
+
+    localStorage.setItem(
+        CLAVE_PARADAS,
+        JSON.stringify(paradas)
+    );
+
+}
+
+
+function actualizarMapa() {
+
+    marcadores.forEach(
+        function(marcador) {
+            mapa.removeLayer(marcador);
+        }
+    );
+
+    marcadores = [];
+
+
+    paradas.forEach(
+        function(parada) {
+
+            const marcador =
+            L.marker([
+                parada.latitud,
+                parada.longitud
+            ]).addTo(mapa);
+
+
+            marcador.bindPopup(
+                "<b>📍 " +
+                parada.nombre +
+                "</b><br>" +
+                "ID: " +
+                parada.id
+            );
+
+
+            marcadores.push(marcador);
+
+        }
+    );
+
+}
+
+
+function actualizarSelect() {
+
+    const select =
+    document.getElementById(
+        "paradaSeleccionada"
+    );
+
+
+    select.innerHTML =
+    '<option value="">Seleccionar parada</option>';
+
+
+    paradas.forEach(
+        function(parada) {
+
+            const opcion =
+            document.createElement("option");
+
+            opcion.value =
+            parada.id;
+
+            opcion.textContent =
+            parada.nombre;
+
+            select.appendChild(opcion);
+
+        }
+    );
+
+}
+
+
+function actualizarListaParadas() {
+
+    const lista =
+    document.getElementById(
+        "listaParadas"
+    );
+
+
+    if (paradas.length === 0) {
+
+        lista.innerHTML =
+        "No hay paradas todavía.";
+
+        return;
+
+    }
+
+
+    lista.innerHTML = "";
+
+
+    paradas.forEach(
+        function(parada) {
+
+            const elemento =
+            document.createElement("div");
+
+            elemento.className =
+            "observacion";
+
+
+            elemento.innerHTML = `
+
+                <b>📍 ${parada.nombre}</b><br>
+
+                ID: ${parada.id}<br>
+
+                Latitud:
+                ${parada.latitud.toFixed(6)}
+                <br>
+
+                Longitud:
+                ${parada.longitud.toFixed(6)}
+
+                <button
+                onclick="eliminarParada(${parada.id})"
+                class="borrar"
+                >
+                🗑️ Eliminar
+                </button>
+
+            `;
+
+
+            lista.appendChild(elemento);
+
+        }
+    );
+
+}
+
+
+function eliminarParada(id) {
+
+    const confirmar =
+    confirm(
+        "¿Querés eliminar esta parada?"
+    );
+
+
+    if (!confirmar) {
+        return;
+    }
+
+
+    paradas =
+    paradas.filter(
+        function(parada) {
+            return parada.id !== id;
+        }
+    );
+
+
+    guardarTodo();
+
+    actualizarMapa();
+
+    actualizarSelect();
+
+    actualizarListaParadas();
+
+}
+
+
+document
+.getElementById(
+    "botonAgregarParada"
+)
+.addEventListener(
+    "click",
+    function() {
+
+        alert(
+            "Ahora tocá en el mapa donde está la parada."
+        );
+
+
+        mapa.once(
+            "click",
+            function(evento) {
+
+                const nombre =
+                prompt(
+                    "¿Cómo se llama esta parada?"
+                );
+
+
+                if (!nombre) {
+                    return;
+                }
+
+
+                const nuevaParada = {
+
+                    id:
+                    Date.now(),
+
+                    nombre:
+                    nombre,
+
+                    latitud:
+                    evento.latlng.lat,
+
+                    longitud:
+                    evento.latlng.lng
+
+                };
+
+
+                paradas.push(
+                    nuevaParada
+                );
+
+
+                guardarTodo();
+
+                actualizarMapa();
+
+                actualizarSelect();
+
+                actualizarListaParadas();
+
+
+                alert(
+                    "✅ Parada guardada correctamente."
+                );
+
+            }
+        );
+
+    }
+);
+
 
 function colocarFechaHora() {
 
-    const ahora = new Date();
+    const ahora =
+    new Date();
+
 
     const anio =
     ahora.getFullYear();
+
 
     const mes =
     String(
         ahora.getMonth() + 1
     ).padStart(2, "0");
 
+
     const dia =
     String(
         ahora.getDate()
     ).padStart(2, "0");
 
+
     const horas =
     String(
         ahora.getHours()
     ).padStart(2, "0");
+
 
     const minutos =
     String(
@@ -402,40 +670,153 @@ function colocarFechaHora() {
     ).padStart(2, "0");
 
 
-    fecha.value =
+    document.getElementById(
+        "fecha"
+    ).value =
     `${anio}-${mes}-${dia}`;
 
-    hora.value =
+
+    document.getElementById(
+        "hora"
+    ).value =
     `${horas}:${minutos}`;
+
 }
 
 
 colocarFechaHora();
 
 
-// ==========================================
-// GUARDAR DATOS
-// ==========================================
+document
+.getElementById("formulario")
+.addEventListener(
+    "submit",
+    function(evento) {
 
-function guardarDatos() {
-
-    localStorage.setItem(
-        CLAVE,
-        JSON.stringify(observaciones)
-    );
-
-    actualizarPantalla();
-}
+        evento.preventDefault();
 
 
-// ==========================================
-// ACTUALIZAR PANTALLA
-// ==========================================
+        const idParada =
+        Number(
+            document.getElementById(
+                "paradaSeleccionada"
+            ).value
+        );
+
+
+        const parada =
+        paradas.find(
+            function(p) {
+                return p.id === idParada;
+            }
+        );
+
+
+        if (!parada) {
+
+            alert(
+                "❌ Primero seleccioná una parada."
+            );
+
+            return;
+
+        }
+
+
+        const nuevaObservacion = {
+
+            fecha:
+            document.getElementById(
+                "fecha"
+            ).value,
+
+            hora:
+            document.getElementById(
+                "hora"
+            ).value,
+
+            linea:
+            document.getElementById(
+                "linea"
+            ).value.trim(),
+
+            parada:
+            parada.nombre,
+
+            id_parada:
+            parada.id,
+
+            sentido:
+            document.getElementById(
+                "sentido"
+            ).value,
+
+            trafico:
+            Number(
+                document.getElementById(
+                    "trafico"
+                ).value
+            ),
+
+            tiempo:
+            Number(
+                document.getElementById(
+                    "tiempo"
+                ).value
+            ),
+
+            latitud:
+            parada.latitud,
+
+            longitud:
+            parada.longitud
+
+        };
+
+
+        observaciones.push(
+            nuevaObservacion
+        );
+
+
+        guardarTodo();
+
+        actualizarPantalla();
+
+
+        alert(
+            "✅ Observación guardada."
+        );
+
+
+        document.getElementById(
+            "linea"
+        ).value = "";
+
+
+        document.getElementById(
+            "tiempo"
+        ).value = "";
+
+
+        colocarFechaHora();
+
+    }
+);
+
 
 function actualizarPantalla() {
 
-    cantidad.textContent =
+    document.getElementById(
+        "cantidad"
+    ).textContent =
     observaciones.length;
+
+
+    const lista =
+    document.getElementById(
+        "listaObservaciones"
+    );
 
 
     if (observaciones.length === 0) {
@@ -444,6 +825,7 @@ function actualizarPantalla() {
         "No hay observaciones todavía.";
 
         return;
+
     }
 
 
@@ -463,58 +845,27 @@ function actualizarPantalla() {
             const elemento =
             document.createElement("div");
 
+
             elemento.className =
             "observacion";
 
 
-            let gpsTexto = "";
-
-
-            if (
-                obs.latitud !== null &&
-                obs.longitud !== null
-            ) {
-
-                gpsTexto =
-                `<br>📍 GPS:
-                ${obs.latitud.toFixed(6)},
-                ${obs.longitud.toFixed(6)}`;
-
-            }
-
-
             elemento.innerHTML = `
 
-                <b>
-                🚌 ${obs.linea}
-                </b>
-
-                <br>
+                <b>🚌 ${obs.linea}</b><br>
 
                 📅 ${obs.fecha}
+                🕐 ${obs.hora}<br>
 
-                🕐 ${obs.hora}
+                📍 ${obs.parada}<br>
 
-                <br>
-
-                📍 Parada:
-                ${obs.parada}
-
-                <br>
-
-                ➡️ ${obs.sentido}
-
-                <br>
+                ➡️ ${obs.sentido}<br>
 
                 🚗 Tráfico:
-                ${obs.trafico}/5
+                ${obs.trafico}/5<br>
 
-                <br>
-
-                ⏱️ Tiempo:
+                ⏱️ Llegada:
                 ${obs.tiempo} minutos
-
-                ${gpsTexto}
 
             `;
 
@@ -525,92 +876,15 @@ function actualizarPantalla() {
 
         }
     );
+
 }
 
-
-// ==========================================
-// REGISTRAR OBSERVACIÓN
-// ==========================================
-
-formulario.addEventListener(
-    "submit",
-    function(event) {
-
-        event.preventDefault();
-
-
-        const nuevaObservacion = {
-
-            fecha:
-            fecha.value,
-
-            hora:
-            hora.value,
-
-            linea:
-            linea.value.trim(),
-
-            parada:
-            parada.value.trim(),
-
-            sentido:
-            sentido.value,
-
-            trafico:
-            Number(
-                trafico.value
-            ),
-
-            tiempo:
-            Number(
-                tiempo.value
-            ),
-
-            latitud:
-            null,
-
-            longitud:
-            null
-
-        };
-
-
-        observaciones.push(
-            nuevaObservacion
-        );
-
-
-        guardarDatos();
-
-
-        alert(
-            "✅ Observación guardada en el teléfono."
-        );
-
-
-        linea.value = "";
-
-        parada.value = "";
-
-        tiempo.value = "";
-
-
-        colocarFechaHora();
-
-    }
-);
-
-
-// ==========================================
-// GPS
-// ==========================================
 
 document
 .getElementById("botonGPS")
 .addEventListener(
     "click",
     function() {
-
 
         if (
             observaciones.length === 0
@@ -621,6 +895,7 @@ document
             );
 
             return;
+
         }
 
 
@@ -629,16 +904,15 @@ document
         ) {
 
             alert(
-                "❌ Este dispositivo no permite GPS."
+                "❌ GPS no disponible."
             );
 
             return;
+
         }
 
 
-        navigator
-        .geolocation
-        .getCurrentPosition(
+        navigator.geolocation.getCurrentPosition(
 
             function(posicion) {
 
@@ -656,11 +930,10 @@ document
                 posicion.coords.longitude;
 
 
-                guardarDatos();
-
+                guardarTodo();
 
                 alert(
-                    "📍 Ubicación GPS guardada."
+                    "📍 GPS guardado."
                 );
 
             },
@@ -668,7 +941,7 @@ document
             function() {
 
                 alert(
-                    "❌ No se pudo obtener el GPS."
+                    "❌ No se pudo obtener la ubicación."
                 );
 
             },
@@ -684,26 +957,22 @@ document
 );
 
 
-// ==========================================
-// EXPORTAR CSV
-// ==========================================
-
 document
 .getElementById("botonExportar")
 .addEventListener(
     "click",
     function() {
 
-
         if (
             observaciones.length === 0
         ) {
 
             alert(
-                "No hay datos para exportar."
+                "No hay observaciones."
             );
 
             return;
+
         }
 
 
@@ -713,6 +982,7 @@ document
             "hora",
             "linea",
             "parada",
+            "id_parada",
             "sentido",
             "trafico",
             "tiempo_llegada",
@@ -736,66 +1006,126 @@ document
                     obs.hora,
                     obs.linea,
                     obs.parada,
+                    obs.id_parada,
                     obs.sentido,
                     obs.trafico,
                     obs.tiempo,
-                    obs.latitud ?? "",
-                    obs.longitud ?? ""
+                    obs.latitud,
+                    obs.longitud
 
-                ].join(",") + "\n";
+                ].join(",") +
+                "\n";
 
             }
         );
 
 
-        const archivo =
-        new Blob(
-            [csv],
-            {
-                type:
-                "text/csv;charset=utf-8;"
-            }
-        );
-
-
-        const url =
-        URL.createObjectURL(
-            archivo
-        );
-
-
-        const enlace =
-        document.createElement("a");
-
-
-        enlace.href = url;
-
-
-        enlace.download =
-        "observaciones_colectivos.csv";
-
-
-        enlace.click();
-
-
-        URL.revokeObjectURL(
-            url
+        descargarCSV(
+            csv,
+            "observaciones_colectivos.csv"
         );
 
     }
 );
 
 
-// ==========================================
-// BORRAR DATOS
-// ==========================================
+document
+.getElementById(
+    "botonExportarParadas"
+)
+.addEventListener(
+    "click",
+    function() {
+
+        if (paradas.length === 0) {
+
+            alert(
+                "No hay paradas."
+            );
+
+            return;
+
+        }
+
+
+        let csv =
+        "id,nombre,latitud,longitud\n";
+
+
+        paradas.forEach(
+            function(parada) {
+
+                csv += [
+
+                    parada.id,
+                    `"${parada.nombre}"`,
+                    parada.latitud,
+                    parada.longitud
+
+                ].join(",") +
+                "\n";
+
+            }
+        );
+
+
+        descargarCSV(
+            csv,
+            "paradas_colectivos.csv"
+        );
+
+    }
+);
+
+
+function descargarCSV(
+    contenido,
+    nombre
+) {
+
+    const archivo =
+    new Blob(
+        [contenido],
+        {
+            type:
+            "text/csv;charset=utf-8;"
+        }
+    );
+
+
+    const url =
+    URL.createObjectURL(
+        archivo
+    );
+
+
+    const enlace =
+    document.createElement("a");
+
+
+    enlace.href =
+    url;
+
+
+    enlace.download =
+    nombre;
+
+
+    enlace.click();
+
+
+    URL.revokeObjectURL(
+        url
+    );
+
+}
+
 
 document
 .getElementById("botonBorrar")
 .addEventListener(
     "click",
     function() {
-
 
         const confirmar =
         confirm(
@@ -811,26 +1141,28 @@ document
         observaciones = [];
 
 
-        guardarDatos();
+        guardarTodo();
+
+        actualizarPantalla();
 
 
         alert(
-            "🗑️ Datos eliminados."
+            "🗑️ Observaciones eliminadas."
         );
 
     }
 );
 
 
-// ==========================================
-// INICIAR
-// ==========================================
+actualizarMapa();
+
+actualizarSelect();
+
+actualizarListaParadas();
 
 actualizarPantalla();
 
-
 </script>
-
 
 </body>
 

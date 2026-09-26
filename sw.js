@@ -1,4 +1,4 @@
-const CACHE_NAME = "colectivos-v1";
+const CACHE_NAME = "colectivos-v2";
 
 const ARCHIVOS = [
     "./",
@@ -6,44 +6,90 @@ const ARCHIVOS = [
     "./manifest.json"
 ];
 
+self.addEventListener("install", function(event) {
 
-self.addEventListener(
-    "install",
-    function(event) {
+    self.skipWaiting();
 
-        event.waitUntil(
+    event.waitUntil(
+        caches.open(CACHE_NAME)
+        .then(function(cache) {
+            return cache.addAll(ARCHIVOS);
+        })
+    );
 
-            caches.open(CACHE_NAME)
-            .then(function(cache) {
-
-                return cache.addAll(
-                    ARCHIVOS
-                );
-
-            })
-
-        );
-
-    }
-);
+});
 
 
-self.addEventListener(
-    "fetch",
-    function(event) {
+self.addEventListener("activate", function(event) {
+
+    event.waitUntil(
+
+        caches.keys().then(function(keys) {
+
+            return Promise.all(
+
+                keys.map(function(key) {
+
+                    if (key !== CACHE_NAME) {
+                        return caches.delete(key);
+                    }
+
+                })
+
+            );
+
+        })
+
+    );
+
+    self.clients.claim();
+
+});
+
+
+self.addEventListener("fetch", function(event) {
+
+    /*
+       Para index.html y archivos principales:
+       primero intenta obtener la versión nueva
+       desde Internet.
+
+       Si no hay Internet, usa la versión guardada.
+    */
+
+    if (
+        event.request.method === "GET" &&
+        (
+            event.request.url.endsWith("/index.html") ||
+            event.request.url.endsWith("/manifest.json") ||
+            event.request.url.endsWith("/")
+        )
+    ) {
 
         event.respondWith(
 
-            caches.match(
-                event.request
-            )
-            .then(function(respuesta) {
+            fetch(event.request)
+            .then(function(response) {
 
-                if (respuesta) {
-                    return respuesta;
-                }
+                const copia =
+                    response.clone();
 
-                return fetch(
+                caches.open(CACHE_NAME)
+                .then(function(cache) {
+
+                    cache.put(
+                        event.request,
+                        copia
+                    );
+
+                });
+
+                return response;
+
+            })
+            .catch(function() {
+
+                return caches.match(
                     event.request
                 );
 
@@ -51,5 +97,30 @@ self.addEventListener(
 
         );
 
+        return;
+
     }
-);
+
+
+    /*
+       Para el resto de archivos:
+       usamos caché si existe y,
+       si no, Internet.
+    */
+
+    event.respondWith(
+
+        caches.match(event.request)
+        .then(function(respuesta) {
+
+            if (respuesta) {
+                return respuesta;
+            }
+
+            return fetch(event.request);
+
+        })
+
+    );
+
+});
